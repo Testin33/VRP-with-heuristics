@@ -1,4 +1,5 @@
-"""Plot utilities for VRP (baseline Pyomo and heuristic)."""
+"""Plot utilities for VRP baseline Pyomo and heuristic."""
+""" To create a visual tool to analize the answer, that is the focus of this file"""
 from __future__ import annotations
 
 from typing import Dict, List, Mapping, Tuple, Any
@@ -8,7 +9,7 @@ import pyomo.environ as pyo
 
 
 def extract_assign_from_model(m: Any) -> Dict[int, int]:
-    """Return customer->store assignment from a solved Pyomo model."""
+    """Return customer to store assignment from a solved Pyomo model."""
     assign: Dict[int, int] = {}
     for j in m.C:
         for i in m.R:

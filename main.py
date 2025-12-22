@@ -56,7 +56,6 @@ if __name__ == "__main__":
     print_active_arcs(m)
     print_routes(m)
 
-    # Graficar solución óptima (requiere matplotlib)
     assign_opt = extract_assign_from_model(m)
     routes_opt = extract_routes_from_model(m)
     plot_from_data(data, routes_opt, assign_opt, title="Baseline Pyomo")

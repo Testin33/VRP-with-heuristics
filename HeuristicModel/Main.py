@@ -59,10 +59,10 @@ def run_one(n_stores: int, n_customers: int, scenario: int, seed: int = 0, n_veh
 
     dist = build_distance(inst)
 
-    # -------- NEW PRINTS: instance stats --------
+
     inv = inventory_summary(inst)
     sum_offline = sum(inst.D[i] for i in inst.R)
-    cap_lb = int((sum_offline + inst.Q - 1) // inst.Q)  # ceil(sumD/Q) para Q float queda ok si Q int; simple
+    cap_lb = int((sum_offline + inst.Q - 1) // inst.Q)  
 
     print(f"Vehicles (given/estimated) |K| = {len(inst.K)}  |  Capacity Q={inst.Q}  |  Route limit L={inst.L}")
     print(f"Products |P| = {len(inst.P)}  (with demand: {inv['products_with_demand']}, zero-demand: {inv['products_zero_demand']})")
@@ -71,7 +71,6 @@ def run_one(n_stores: int, n_customers: int, scenario: int, seed: int = 0, n_veh
 
     print(f"Online demand PD stats (only products with demand): min={inv['PD_min']:.0f}, max={inv['PD_max']:.0f}, avg={inv['PD_avg']:.2f}")
     print(f"Inventory PI stats (only products with demand): min={inv['PI_min']:.1f}, max={inv['PI_max']:.1f}, avg={inv['PI_avg']:.2f}")
-    # -------------------------------------------
 
     t0 = time.time()
     assign, routes = two_phase_heuristic(inst, dist)
@@ -80,15 +79,12 @@ def run_one(n_stores: int, n_customers: int, scenario: int, seed: int = 0, n_veh
     ok, msg = check_solution(inst, dist, assign, routes)
     total_dist = total_distance_over_fleet(routes, dist)
 
-    # -------- NEW PRINTS: heuristic stats --------
     n_routes = len(routes)
     print("\n[HEURISTIC SUMMARY]")
     print(f"Vehicles used (routes) = {n_routes}")
-    # si querés, imprime solo 2 rutas como muestra:
     sample = list(routes.items())[:2]
     for k, r in sample:
         print(f"  sample {k}: len={len(r)} | {r[:10]}{'...' if len(r) > 10 else ''}")
-    # --------------------------------------------
 
     print("\n[RESULT]")
     print("Feasible?", ok, "|", msg)
@@ -105,3 +101,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

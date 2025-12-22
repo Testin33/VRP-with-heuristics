@@ -4,10 +4,7 @@ from __future__ import annotations
 from typing import Dict, Tuple, List, Set
 from instance_data import Instance
 
-
-# -------------------------
 # Helpers: demand / products
-# -------------------------
 
 def customer_product(instance: Instance, j: int) -> int:
     for p in instance.P:
@@ -22,11 +19,7 @@ def route_distance(route: List[int], dist: Dict[Tuple[int, int], float]) -> floa
         total += dist[(route[t], route[t + 1])]
     return total
 
-
-# -------------------------
 # Phase 1: assignment
-# -------------------------
-
 def phase1_greedy_assignment(instance: Instance,
                              dist: Dict[Tuple[int, int], float]) -> Dict[int, int]:
     R: List[int] = instance.R
@@ -58,9 +51,7 @@ def phase1_greedy_assignment(instance: Instance,
     return assign
 
 
-# -------------------------
 # Phase 1: build initial routes (one per store)
-# -------------------------
 
 def build_initial_routes_per_store(instance: Instance,
                                    dist: Dict[Tuple[int, int], float],
@@ -100,9 +91,7 @@ def two_phase_heuristic_phase1_only(instance: Instance,
     return assign, routes_list
 
 
-# -------------------------
 # Feasibility checks
-# -------------------------
 
 def _capacity_ok(instance: Instance, route: List[int]) -> bool:
     # capacity uses offline store deliveries D[i]
@@ -150,10 +139,7 @@ def is_route_feasible(instance: Instance,
 
     return _capacity_ok(instance, route) and _precedence_ok(instance, route, assign) and _length_ok(instance, route, dist)
 
-
-# -------------------------
 # Phase 2: merge by "blocks"
-# -------------------------
 
 def extract_blocks(route: List[int], instance: Instance, assign: Dict[int, int]) -> List[Tuple[int, List[int]]]:
     """
@@ -192,7 +178,7 @@ def extract_blocks(route: List[int], instance: Instance, assign: Dict[int, int])
         blocks.append((current_store, current_customers))
 
     # normalize: ensure each customer appears in its store block
-    # (if route order was weird, we still regroup)
+    #if route order was weird, we still regroup
     store_to_customers: Dict[int, List[int]] = {}
     for n in nodes:
         if n in instance.C:
@@ -346,9 +332,9 @@ def two_phase_heuristic(instance: Instance,
     assign, routes_list = two_phase_heuristic_phase1_only(instance, dist)
     merged_routes = phase2_merge_routes_to_k(instance, dist, assign, routes_list)
 
-    # ✅ NO forzamos exactamente |K| en large: usamos los vehículos que se necesiten
     routes: Dict[str, List[int]] = {}
     for idx, r in enumerate(merged_routes):
         routes[f"k{idx+1}"] = r
 
     return assign, routes
+
