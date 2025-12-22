@@ -1,7 +1,17 @@
 # main.py
+import importlib.util
+import pathlib
+
 from instance_data import load_sample_instance_from_dat
 from utils import build_distance, total_distance_over_fleet
 from validator import check_solution
+
+# Cargar funciones de ploteo desde utils.py en el directorio raíz (para evitar el utils local)
+_root_utils_path = pathlib.Path(__file__).resolve().parent.parent / "utils.py"
+_spec = importlib.util.spec_from_file_location("plot_utils_root", _root_utils_path)
+plot_utils_root = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(plot_utils_root)  # type: ignore
+plot_from_instance = plot_utils_root.plot_from_instance
 
 
 def build_manual_feasible_solution():
@@ -85,6 +95,7 @@ def main():
     for k, r in routes_h.items():
         print(f"  {k}: {r}")
     print(f"Total distance = {total_distance_over_fleet(routes_h, dist):.4f}")
+    plot_from_instance(inst, routes_h, assign_h, title="Heuristic two-phase")
 
 
 if __name__ == "__main__":

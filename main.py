@@ -2,6 +2,8 @@
 import pyomo.environ as pyo
 from data import get_data
 from model import build_model
+from utils import extract_routes_from_model, extract_assign_from_model, plot_from_data
+
 
 def print_active_arcs(m):
     print("\n---- Active arcs (x[k,i,j] = 1) ----")
@@ -53,3 +55,8 @@ if __name__ == "__main__":
 
     print_active_arcs(m)
     print_routes(m)
+
+    # Graficar solución óptima (requiere matplotlib)
+    assign_opt = extract_assign_from_model(m)
+    routes_opt = extract_routes_from_model(m)
+    plot_from_data(data, routes_opt, assign_opt, title="Baseline Pyomo")
