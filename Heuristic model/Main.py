@@ -6,18 +6,8 @@ from validator import check_solution
 
 def build_manual_feasible_solution():
     """
-    Construye una solución factible PARA ESTA INSTANCIA (.dat).
-    Importante:
-    - K = {k1,k2} => 2 rutas
-    - N debe visitarse exactamente 1 vez
-    - Cada cliente asignado a una tienda con inventario suficiente
-    - Precedencia: tienda antes que sus clientes en la misma ruta
-    - Capacidad Q=100 sobre suma D (solo tiendas tienen D>0): 
-      37+42+28 = 107 => no pueden ir las 3 tiendas en un solo vehículo.
-      Entonces: 2 tiendas en una ruta y 1 tienda en la otra.
+    Solución factible manual para esta instancia (.dat).
     """
-
- 
     assign = {
         4: 1,  # p3 -> store1
         5: 1,  # p2 -> store1
@@ -26,7 +16,6 @@ def build_manual_feasible_solution():
         8: 3,  # p1 -> store3
         9: 2,  # p2 -> store2
     }
-
 
     routes = {
         "k1": [0, 1, 4, 5, 6, 3, 8, 0],
@@ -38,17 +27,16 @@ def build_manual_feasible_solution():
 
 def build_precedence_broken_solution():
     """
-    Solución que rompe la precedencia intencionalmente:
-    pone un cliente antes que su tienda en la misma ruta.
+    Rompe precedencia intencionalmente: cliente 4 antes que tienda 1.
     """
     assign, routes = build_manual_feasible_solution()
-    # Rompemos: en k1 ponemos el cliente 4 antes que la tienda 1
     routes_bad = dict(routes)
     routes_bad["k1"] = [0, 4, 1, 5, 6, 3, 8, 0]
     return assign, routes_bad
 
 
 def main():
+    # ===== Load instance and distances =====
     inst = load_sample_instance_from_dat()
     dist = build_distance(inst)
 
@@ -58,7 +46,7 @@ def main():
     print(f"Customers C: {inst.C}")
     print(f"Capacity Q: {inst.Q}, Route limit L: {inst.L}")
 
-    # 1) Test con solución factible
+    # ===== TEST 1: Manual feasible solution =====
     assign, routes = build_manual_feasible_solution()
     ok, msg = check_solution(inst, dist, assign, routes)
     print("\n[TEST 1] Manual feasible solution:")
@@ -70,7 +58,7 @@ def main():
         for k, r in routes.items():
             print(f"  {k}: {r}")
 
-    # 2) Test con solución que rompe precedencia
+    # ===== TEST 2: Precedence-broken solution =====
     assign2, routes_bad = build_precedence_broken_solution()
     ok2, msg2 = check_solution(inst, dist, assign2, routes_bad)
     print("\n[TEST 2] Precedence-broken solution (should fail):")
@@ -78,6 +66,27 @@ def main():
     for k, r in routes_bad.items():
         print(f"  {k}: {r}")
 
+    # ===== PHASE 1 (optional print) =====
+    from heuristic_two_phase import two_phase_heuristic_phase1_only
+    assign_p1, routes_list = two_phase_heuristic_phase1_only(inst, dist)
+    print("\n[PHASE 1] Greedy assignment + initial routes per store:")
+    print("Assignment:", assign_p1)
+    for idx, r in enumerate(routes_list, 1):
+        print(f"  route_{idx}: {r}")
+
+    # ===== FULL TWO-PHASE HEURISTIC (Phase 1 + Phase 2) =====
+    from heuristic_two_phase import two_phase_heuristic
+    assign_h, routes_h = two_phase_heuristic(inst, dist)
+    okh, msgh = check_solution(inst, dist, assign_h, routes_h)
+
+    print("\n[HEURISTIC] Full two-phase heuristic:")
+    print("Feasible?", okh, "|", msgh)
+    print("Assignment:", assign_h)
+    for k, r in routes_h.items():
+        print(f"  {k}: {r}")
+    print(f"Total distance = {total_distance_over_fleet(routes_h, dist):.4f}")
+
 
 if __name__ == "__main__":
     main()
+
