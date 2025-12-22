@@ -37,7 +37,6 @@ class Instance:
 
 
 def load_sample_instance_from_dat() -> Instance:
-    # From your .dat file
     K = ["k1", "k2"]
     P = [1, 2, 3]
 
@@ -83,3 +82,4 @@ def load_sample_instance_from_dat() -> Instance:
         K=K, P=P, N=N, R=R, C=C, depot=depot,
         Q=Q, L=L, D=D, d=d, I=I, O=O, X=X, Y=Y
     )
+
