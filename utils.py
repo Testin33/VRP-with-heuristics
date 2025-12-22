@@ -1,8 +1,10 @@
-"""Plot utilities for VRP baseline Pyomo and heuristic."""
-""" To create a visual tool to analize the answer, that is the focus of this file"""
 from __future__ import annotations
 
-from typing import Dict, List, Mapping, Tuple, Any
+"""Plot utilities for VRP baseline Pyomo and heuristic.
+To create a visual tool to analize the answer, that is the focus of this file.
+"""
+
+from typing import Any, Dict, List, Mapping, Tuple
 
 import matplotlib.pyplot as plt
 import pyomo.environ as pyo
