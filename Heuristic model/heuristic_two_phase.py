@@ -149,3 +149,147 @@ def two_phase_heuristic(
         "Phase 2 (route merging/savings) not implemented yet. "
         "Use two_phase_heuristic_phase1_only() to get initial routes."
     )
+# --- Phase 2: route merging (savings-style) ---
+
+def _route_stores_customers(instance: Instance, route: List[int]) -> Tuple[Set[int], Set[int]]:
+    stores = {n for n in route if n in set(instance.R)}
+    customers = {n for n in route if n in set(instance.C)}
+    return stores, customers
+
+
+def _capacity_ok(instance: Instance, route: List[int]) -> bool:
+    # Your AMPL load uses D[node]; in your data, only stores have D>0.
+    load_sum = sum(instance.D.get(n, 0.0) for n in route if n != instance.depot)
+    return load_sum <= instance.Q + 1e-9
+
+
+def _precedence_ok(instance: Instance, route: List[int], assign: Dict[int, int]) -> bool:
+    pos = {node: idx for idx, node in enumerate(route)}
+    # Every customer in route must have its assigned store in route, before it.
+    for j in route:
+        if j in set(instance.C):
+            i = assign[j]
+            if i not in pos:
+                return False
+            if pos[i] > pos[j]:
+                return False
+    return True
+
+
+def _length_ok(instance: Instance, route: List[int], dist: Dict[Tuple[int, int], float]) -> bool:
+    travel = 0.0
+    for t in range(len(route) - 1):
+        travel += dist[(route[t], route[t+1])]
+    service = sum(instance.O.get(n, 0.0) for n in route)
+    return (travel + service) <= instance.L + 1e-9
+
+
+def is_route_feasible(instance: Instance,
+                      dist: Dict[Tuple[int, int], float],
+                      assign: Dict[int, int],
+                      route: List[int]) -> bool:
+    # must start/end at depot
+    if route[0] != instance.depot or route[-1] != instance.depot:
+        return False
+    # no duplicates (except depot)
+    seen = set()
+    for n in route:
+        if n == instance.depot:
+            continue
+        if n in seen:
+            return False
+        seen.add(n)
+
+    return _capacity_ok(instance, route) and _precedence_ok(instance, route, assign) and _length_ok(instance, route, dist)
+
+
+def merge_two_routes_simple(route_a: List[int], route_b: List[int], depot: int) -> List[int]:
+    """
+    Simple concatenation merge:
+      [0, ...a..., 0] + [0, ...b..., 0]  -> [0, ...a..., ...b..., 0]
+    We remove the ending depot of A and starting depot of B.
+    """
+    assert route_a[0] == depot and route_a[-1] == depot
+    assert route_b[0] == depot and route_b[-1] == depot
+    return route_a[:-1] + route_b[1:]
+
+
+def saving_between_routes(route_a: List[int], route_b: List[int],
+                          dist: Dict[Tuple[int, int], float],
+                          depot: int) -> float:
+    """
+    Clarke-Wright style saving using last non-depot of A and first non-depot of B.
+    """
+    a_last = route_a[-2]   # last node before depot
+    b_first = route_b[1]   # first node after depot
+    return dist[(a_last, depot)] + dist[(depot, b_first)] - dist[(a_last, b_first)]
+
+
+def phase2_merge_routes_to_k(instance: Instance,
+                             dist: Dict[Tuple[int, int], float],
+                             assign: Dict[int, int],
+                             routes_list: List[List[int]]) -> List[List[int]]:
+    """
+    Merge routes until we have exactly len(K) routes.
+    Greedy: compute savings for all pairs, try best merges first.
+    """
+    target = len(instance.K)
+    depot = instance.depot
+
+    routes = routes_list[:]
+
+    while len(routes) > target:
+        # compute pair savings
+        candidates = []
+        for a in range(len(routes)):
+            for b in range(len(routes)):
+                if a == b:
+                    continue
+                s = saving_between_routes(routes[a], routes[b], dist, depot)
+                candidates.append((s, a, b))
+        # try merges from best saving to worst
+        candidates.sort(reverse=True, key=lambda x: x[0])
+
+        merged = False
+        for _, a_idx, b_idx in candidates:
+            if a_idx >= len(routes) or b_idx >= len(routes) or a_idx == b_idx:
+                continue
+            ra = routes[a_idx]
+            rb = routes[b_idx]
+            proposal = merge_two_routes_simple(ra, rb, depot)
+            if is_route_feasible(instance, dist, assign, proposal):
+                # accept merge: remove the two routes, add merged
+                # remove higher index first to not shift indices
+                i1, i2 = sorted([a_idx, b_idx], reverse=True)
+                routes.pop(i1)
+                routes.pop(i2)
+                routes.append(proposal)
+                merged = True
+                break
+
+        if not merged:
+            raise RuntimeError(
+                "Phase 2 merging failed: could not find any feasible merge to reduce routes. "
+                "You may need a smarter merge (reordering) or adjust Phase 1."
+            )
+
+    return routes
+
+
+def pack_routes_to_vehicles(instance: Instance, routes_list: List[List[int]]) -> Dict[str, List[int]]:
+    if len(routes_list) != len(instance.K):
+        raise ValueError(f"Need exactly {len(instance.K)} routes to pack, got {len(routes_list)}.")
+    return {k: r for k, r in zip(instance.K, routes_list)}
+
+
+def two_phase_heuristic(instance: Instance,
+                        dist: Dict[Tuple[int, int], float]) -> Tuple[Dict[int, int], Dict[str, List[int]]]:
+    """
+    Full two-phase heuristic:
+      Phase 1: assignment + one route per store
+      Phase 2: merge routes until #routes == #vehicles
+    """
+    assign, routes_list = two_phase_heuristic_phase1_only(instance, dist)
+    merged_routes_list = phase2_merge_routes_to_k(instance, dist, assign, routes_list)
+    routes = pack_routes_to_vehicles(instance, merged_routes_list)
+    return assign, routes
